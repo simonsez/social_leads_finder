@@ -4,20 +4,29 @@ let LinkedInScraper = (function() {
     let _profileTimer = null;
     const parseUrls = () => {
         let profiles = $("ul.results-list li.search-result");
-        let urls = [];
+        let employees = [];
 
         for (let i = 0; i < profiles.length; i ++) {
             let url = (profiles.eq(i).find(".search-result__result-link")[0] || {}).href;
-            if (!url) {
-                continue;
-            }
-            urls.push(url);
+            let name = profiles.eq(i).find(".actor-name").text();
+            let headline = profiles.eq(i).find(".subline-level-1").text();
+            let location = profiles.eq(i).find(".subline-level-2").text().trim();
+            let current = profiles.eq(i).find(".search-result__snippets").text().replace("Current:", "").trim();
+            let employee = {
+                url: url,
+                name: name,
+                headline: headline,
+                location: location,
+                current: current
+            };
+            console.log("Pushing employee " + name);
+            employees.push(employee);
         }
 
         chrome.runtime.sendMessage({
             from: "linkedin",
-            action: "urls",
-            urls: urls
+            action: "employees",
+            employees: employees
         }, () => {
             //
         })
@@ -58,11 +67,22 @@ let LinkedInScraper = (function() {
 
     const init = (step) => {
         if (step == "search" && window.location.pathname.indexOf("/search/results/index") == 0) {
-            $(window).scrollTop($(document).height());
+            var scrollBottom = function(loc, callback) {
+                $(window).scrollTop(loc);
+                if (loc >= $(document).height()) {
+                    if (callback != undefined) {
+                        callback();
+                    }
+                } else {
+                    window.setTimeout(() => {
+                        scrollBottom(loc+200, callback);
+                    }, 400);
+                }
+            }
 
-            window.setTimeout(() => {
+            scrollBottom(0, () => {
                 parseUrls();
-            }, 500);
+            })
         } else if (step == "profile" && window.location.pathname.indexOf("/in/") == 0) {
             $(window).scrollTop($(document).height());
             

@@ -2,8 +2,13 @@
 
 let Popup = (function() {
 	let _bg = chrome.extension.getBackgroundPage().Background;
+	
 	let _keyword = JSON.parse(localStorage._keyword || JSON.stringify(""));
 	let $keyword = $("#keyword");
+
+	let _company = JSON.parse(localStorage._company || JSON.stringify(""));
+	let $company = $("#company");
+
 	let _maxPages = JSON.parse(localStorage._max_pages || JSON.stringify(0));
 	let $maxPages = $("#max-pages");
 
@@ -14,7 +19,7 @@ let Popup = (function() {
 	 * Start the automatic harvesting leads.
 	 */
 	const start = () => {
-		_bg.start(_keyword, () => {
+		_bg.start({ keyword: _keyword, company: _company }, () => {
 			showStopPanel();
 		});
 	}
@@ -36,6 +41,10 @@ let Popup = (function() {
 		.on("change", "#keyword", (event) => {
 			_keyword = event.target.value;
 			localStorage._keyword = JSON.stringify(_keyword);
+		})
+		.on("change", "#company", (event) => {
+			_company = event.target.value;
+			localStorage._company = JSON.stringify(_company);
 		})
 		.on("change", "max-pages", (event) => {
 			_maxPages = parseInt(event.target.value || 0);
@@ -72,8 +81,12 @@ let Popup = (function() {
 	const init = () => {
 		initEvents();
 		$keyword.val(_keyword);
+		$company.val(_company);
 		$maxPages.val(_maxPages);
+
 		$("#info-keyword").text(_keyword);
+		$("#info-company").text(_company);
+
 		$("#info-cur-page").text(JSON.parse(localStorage._page || "null"));
 
 		let curState = _bg.state();

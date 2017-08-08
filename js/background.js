@@ -6,15 +6,19 @@ let Background = (function() {
 	let _step = null;
 	let _urls = [];
 	let _profiles = [];
+	let _employees = [];
 	/**
 	 * Start the automatic process. This will be executed by "Start" button on popup screen.
 	 * @param {string} keyword 
 	 * @return {void}
 	 */
-	const start = (keyword, callback) => {
+	const start = (data, callback) => {
+		let keyword = data.keyword;
+		let company = data.company;
 		localStorage._page = JSON.stringify(1);
 		localStorage._started = JSON.stringify(true);
 		localStorage._keyword = JSON.stringify(keyword);
+		localStorage._company = JSON.stringify(company);
 		LinkedInScraper.openSearch(1, (tabId) => {
 			_searchTabId = tabId;
 			_step = "search";
@@ -28,23 +32,24 @@ let Background = (function() {
         const toLine = arr => arr.map(x => `"${(x + "").replace(/"/g, '""')}"`).join(",");
         let data = null;
 		let keyword = JSON.parse(localStorage._keyword || "null") || "No-keyword";
-        let profiles = _profiles;
+        let employees = _employees;
         
-        let header = ["name", "location", "headline", "webSites", "emails", "phones"];
-		if (profiles.length > 0) {
-			data = profiles.map(p => toLine([
-					p.name,
-					p.location,
-					p.headline,
-					p.webSites,
-					p.emails,
-					p.phones
+        let header = ["company", "url", "name", "location", "headline", "current"];
+		if (employees.length > 0) {
+			data = employees.map(e => toLine([
+					keyword,
+					e.url,
+					e.name,
+					e.location,
+					e.headline,
+					e.current
 			]));
 			
 			data.unshift(toLine(header))
 
 			downloadPlaintext(data.join("\n"), `${keyword}-${new Date().toISOString()}.csv`)
 		}
+		_employees = [];
     }
 
 
@@ -86,6 +91,21 @@ let Background = (function() {
 		})
 	}
 
+	const nextPage = () => {
+		let page = JSON.parse(localStorage._page);
+		let maxPages = JSON.parse(localStorage._max_pages || "null") || Number.POSITIVE_INFINITY;
+
+        if (page > maxPages) {
+            alert("Hit max pages: " + page);
+            downloadToCSV();
+            return false;
+        }
+
+        setTimeout(function() {
+        	openSearchPage(page + 1);
+        }, 500);
+	}
+
 	const checkUrls = () => {
 		if (_urls.length > 0) {
 			let url = _urls.pop();
@@ -95,13 +115,7 @@ let Background = (function() {
 				visitProfile(url);
 			}
 		} else {
-			let page = JSON.parse(localStorage._page);
-
-			openSearchPage(page + 1, () => {
-				if (_profileTabId) {
-					chrome.tabs.remove(_profileTabId);
-				}
-			})
+			nextPage();
 		}
 	}
 
@@ -124,6 +138,10 @@ let Background = (function() {
 
 	const profiles = () => {
 		return _profiles;
+	}
+
+	const employees = () => {
+		return _employees;
 	}
 
 	/**
@@ -152,7 +170,17 @@ let Background = (function() {
 								checkUrls();
 							})
 						}
+					} else if (request.action == "employees") {
+						let employees = request.employees;
+						Array.prototype.push.apply(_employees, employees);
+
+						if (employees.length > 0) {
+							nextPage();
+						} else {
+							downloadToCSV();
+						}
 					} else if (request.action == "profile") {
+						/*
 						if (_profileTabId == sender.tab.id) {
 							let profile = request.profile;
 							_profiles.push(profile);
@@ -167,6 +195,7 @@ let Background = (function() {
 								});
 							}
 						}
+						*/
 					}
 					break;
 

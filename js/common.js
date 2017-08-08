@@ -2,6 +2,7 @@
 
 let LinkedInScraper = (function() {
     let _keyword = JSON.parse(localStorage._keyword || "null") || "";
+    let _company = JSON.parse(localStorage._company || "null") || "";
     let _page = JSON.parse(localStorage._page || "1");
     let _searchUrl = `https://www.linkedin.com/search/results/index/?origin=GLOBAL_SEARCH_HEADER&keywords=${_keyword}`
 
@@ -34,17 +35,10 @@ let LinkedInScraper = (function() {
      * @param {function} callback 
      */
     const openSearchPage = (page, callback) => {
-        let maxPages = JSON.parse(localStorage._max_pages || "null") || Number.POSITIVE_INFINITY;
-
-        if (page > maxPages) {
-            alert("Maximum page.");
-            return false;
-        }
-
         _page = page;
         localStorage._page = JSON.stringify(page);
 
-        chrome.tabs.create({
+        chrome.tabs.update({
             url: getUrl()
         }, (tab) => {
             localStorage._search_tab_id = JSON.stringify(tab.id);
@@ -71,11 +65,12 @@ let LinkedInScraper = (function() {
      */
     const getUrl = () => {
         _keyword = JSON.parse(localStorage._keyword || "null") || "";
+        _company = JSON.parse(localStorage._company || "null") || "";
         _page = JSON.parse(localStorage._page || "null") || 1;
         if (_page == 1) {
-            return `https://www.linkedin.com/search/results/index/?origin=GLOBAL_SEARCH_HEADER&keywords=${_keyword}`;
+            return `https://www.linkedin.com/search/results/index/?origin=GLOBAL_SEARCH_HEADER&keywords=${_keyword}&facetCurrentCompany=${_company}`;
         } else {
-            return `https://www.linkedin.com/search/results/index/?origin=GLOBAL_SEARCH_HEADER&keywords=${_keyword}&page=${_page}`;
+            return `https://www.linkedin.com/search/results/index/?origin=GLOBAL_SEARCH_HEADER&keywords=${_keyword}&facetCurrentCompany=${_company}&page=${_page}`;
         }
     }
 
